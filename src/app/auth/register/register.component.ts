@@ -1,21 +1,28 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { Subscription } from 'rxjs';
+import { AppState } from '../../app.reducer';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../services/auth.service';
+import * as ui from '../../shared/ui.actions';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css']
 })
-export class RegisterComponent implements OnInit {
+export class RegisterComponent implements OnInit, OnDestroy {
   registroForm!: FormGroup;
+  cargando: boolean = false;
+  uiSubscription!: Subscription;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private store: Store<AppState>
   ) { }
 
   ngOnInit(): void {
@@ -24,28 +31,33 @@ export class RegisterComponent implements OnInit {
       correo: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
+
+    this.uiSubscription = this.store.select('ui').subscribe(ui => {
+      this.cargando = ui.isLoading;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.uiSubscription.unsubscribe();
   }
 
   crearUsuario() {
     if(this.registroForm.invalid) {return;}
 
-    Swal.fire({
-      title: 'Por favor, espere...',
-      didOpen: () => {
-        Swal.showLoading()
-        const { nombre, correo, password} = this.registroForm.value;
-        this.authService.crearUsuario(nombre, correo, password).then((credenciales) => {
-          Swal.close();
-          this.router.navigateByUrl('/');
-        }).catch((err) => {
-          Swal.fire({
-            title: 'Error!',
-            text: err.message,
-            icon: 'error',
-            confirmButtonText: 'Ok'
-          });
-        });
-      },
+    this.store.dispatch(ui.isLoading());
+
+    const { nombre, correo, password} = this.registroForm.value;
+    this.authService.crearUsuario(nombre, correo, password).then((credenciales) => {
+      this.store.dispatch(ui.stopLoading());
+      this.router.navigateByUrl('/');
+    }).catch((err) => {
+      this.store.dispatch(ui.stopLoading());
+      Swal.fire({
+        title: 'Error!',
+        text: err.message,
+        icon: 'error',
+        confirmButtonText: 'Ok'
+      });
     });
   }
 }
