@@ -7,6 +7,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../app.reducer';
 import { Subscription } from 'rxjs';
 import * as ui from '../shared/ui.actions';
+import { AppStateWithIngreso } from './ingreso-egreso.reducer';
 
 @Component({
   selector: 'app-ingreso-egreso',
@@ -22,7 +23,7 @@ export class IngresoEgresoComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private ingresoEgresoService: IngresoEgresoService,
-    private store: Store<AppState>
+    private store: Store<AppStateWithIngreso>
   ) { }
 
   ngOnInit(): void {
